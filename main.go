@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -32,6 +33,14 @@ func (f *File) isDir() bool {
 	return f.Type == "dir"
 }
 
+func (f *File) getSize() string {
+	if f.Size > 0 {
+		return fmt.Sprintf("(%db)", f.Size)
+	}
+
+	return "(empty)"
+}
+
 func dirTree(out io.Writer, path string, printFiles bool) error {
 
 	fileCollections, err := recursiveRead(path, printFiles)
@@ -41,7 +50,7 @@ func dirTree(out io.Writer, path string, printFiles bool) error {
 	prefix := []string{}
 	View := recursiveView(fileCollections, prefix)
 
-	fmt.Println(View)
+	fmt.Println(strings.TrimSpace(View))
 	return nil
 }
 
@@ -49,6 +58,10 @@ func recursiveView(files []File, prefixes []string) string {
 	var View string
 	graphic := strings.Join(prefixes, "")
 	length := len(files)
+
+	sort.Slice(files, func(i, j int) bool {
+		return files[j].Name > files[i].Name
+	})
 
 	for i, file := range files {
 		isLast := i == length-1
@@ -67,11 +80,11 @@ func recursiveView(files []File, prefixes []string) string {
 		}
 
 		if isLast {
-			View += fmt.Sprintf("%v└───%v (%vb)\n", graphic, file.Name, file.Size)
+			View += fmt.Sprintf("%v└───%v %v\n", graphic, file.Name, file.getSize())
 			continue
 		}
 
-		View += fmt.Sprintf("%v├───%v (%vb)\n", graphic, file.Name, file.Size)
+		View += fmt.Sprintf("%v├───%v %v\n", graphic, file.Name, file.getSize())
 	}
 
 	return View
