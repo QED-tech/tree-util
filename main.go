@@ -34,18 +34,18 @@ func (f *File) isDir() bool {
 
 func dirTree(out io.Writer, path string, printFiles bool) error {
 
-	fileCollections, err := recursiveRead(path)
+	fileCollections, err := recursiveRead(path, printFiles)
 	if err != nil {
 		return err
 	}
 	prefix := []string{}
-	View := recursiveView(fileCollections, prefix, 0, printFiles)
+	View := recursiveView(fileCollections, prefix)
 
 	fmt.Println(View)
 	return nil
 }
 
-func recursiveView(files []File, prefixes []string, depth int, printFiles bool) string {
+func recursiveView(files []File, prefixes []string) string {
 	var View string
 	graphic := strings.Join(prefixes, "")
 	length := len(files)
@@ -56,28 +56,28 @@ func recursiveView(files []File, prefixes []string, depth int, printFiles bool) 
 
 		if isDir && isLast {
 			View += fmt.Sprintf("%v└───%v\n", graphic, file.Name)
-			View += recursiveView(file.Children, append(prefixes, "\t"), depth+1, printFiles)
+			View += recursiveView(file.Children, append(prefixes, "\t"))
 			continue
 		}
 
 		if isDir {
 			View += fmt.Sprintf("%v├───%v\n", graphic, file.Name)
-			View += recursiveView(file.Children, append(prefixes, "│\t"), depth+1, printFiles)
+			View += recursiveView(file.Children, append(prefixes, "│\t"))
 			continue
 		}
 
 		if isLast {
-			View += fmt.Sprintf("%v└───%v\n", graphic, file.Name)
+			View += fmt.Sprintf("%v└───%v (%vb)\n", graphic, file.Name, file.Size)
 			continue
 		}
 
-		View += fmt.Sprintf("%v├───%v\n", graphic, file.Name)
+		View += fmt.Sprintf("%v├───%v (%vb)\n", graphic, file.Name, file.Size)
 	}
 
 	return View
 }
 
-func recursiveRead(filepath string) ([]File, error) {
+func recursiveRead(filepath string, printFiles bool) ([]File, error) {
 
 	files, err := ioutil.ReadDir(filepath)
 	var filesCollection []File
@@ -96,12 +96,16 @@ func recursiveRead(filepath string) ([]File, error) {
 		}
 
 		if file.IsDir() {
-			children, err := recursiveRead(fullPath)
+			children, err := recursiveRead(fullPath, printFiles)
 			if err != nil {
 				return filesCollection, err
 			}
 			fileData := File{fileName, "dir", fi.Size(), children}
 			filesCollection = append(filesCollection, fileData)
+			continue
+		}
+
+		if !printFiles {
 			continue
 		}
 
